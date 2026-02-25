@@ -3,8 +3,8 @@ import Parse from "parse/dist/parse.min.js";
 
 // ── PARSE / BACK4APP INIT ──────────────────────────────────
 // Replace with your keys from back4app.com → Your App → Security & Keys
-const PARSE_APP_ID = import.meta.env.VITE_PARSE_APP_ID || "mBjnnVdvIc0aCcCA9B6GPIjumASWsziMxkrc0z08";
-const PARSE_JS_KEY = import.meta.env.VITE_PARSE_JS_KEY || "3iFmmdy1t9mKtd2V6wM7FiVycaoQcT07a7IWTJTa";
+const PARSE_APP_ID = import.meta.env.VITE_PARSE_APP_ID || mBjnnVdvIc0aCcCA9B6GPIjumASWsziMxkrc0z08;
+const PARSE_JS_KEY = import.meta.env.VITE_PARSE_JS_KEY || 3iFmmdy1t9mKtd2V6wM7FiVycaoQcT07a7IWTJTa;
 const PARSE_SERVER  = import.meta.env.VITE_PARSE_SERVER || "https://parseapi.back4app.com";
 
 Parse.initialize(PARSE_APP_ID, PARSE_JS_KEY);
@@ -251,7 +251,55 @@ const ParseService = {
     const w = await q.get(id);
     await w.destroy();
   },
+
+  // ── OAUTH HELPERS ──
+  // After Google/Apple returns a token we find-or-create a Parse user
+  async oauthFindOrCreate({email, name, provider}){
+    // Try login first, fall back to signup with a random password
+    const tempPass = btoa(email + provider + "chopitup2025").slice(0,20);
+    try{
+      return await Parse.User.logIn(email.toLowerCase().trim(), tempPass);
+    } catch(loginErr){
+      // User doesn't exist yet — create them
+      const user = new Parse.User();
+      user.set("username",  email.toLowerCase().trim());
+      user.set("email",     email.toLowerCase().trim());
+      user.set("password",  tempPass);
+      user.set("name",      name || email.split("@")[0]);
+      user.set("role",      "barber");
+      user.set("provider",  provider);
+      try{
+        await user.signUp();
+        return user;
+      } catch(signUpErr){
+        // Username taken but wrong password (edge case) — regenerate
+        if(signUpErr.code === 202){
+          throw new Error("An account with this email already exists. Please sign in with email instead.");
+        }
+        throw signUpErr;
+      }
+    }
+  },
 };
+
+// ── OAUTH SCRIPT LOADER ────────────────────────────────────
+function loadScript(src, id){
+  return new Promise((resolve, reject)=>{
+    if(document.getElementById(id)){ resolve(); return; }
+    const s = document.createElement("script");
+    s.id = id; s.src = src; s.async = true;
+    s.onload = resolve; s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+
+// Decode a JWT payload without verifying signature (client-side only)
+function decodeJWT(token){
+  try{
+    const base64 = token.split(".")[1].replace(/-/g,"+").replace(/_/g,"/");
+    return JSON.parse(atob(base64));
+  } catch(e){ return {}; }
+}
 
 
 // ── DESIGN TOKENS ──
@@ -1794,13 +1842,104 @@ function AuthScreen({onAuth}){
   const [name,setName]=useState("");
   const [role,setRole]=useState("barber");
   const [loading,setLoading]=useState(false);
+  const [oauthLoading,setOauthLoading]=useState(""); // "google" | "apple" | ""
   const [err,setErr]=useState("");
+  const [showSetupTip,setShowSetupTip]=useState(false);
 
-  const handleSubmit=async()=>{
+  // ── Google Sign-In ──
+  const handleGoogleSignIn=async()=>{
+    const clientId=import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    if(!clientId){
+      setErr("Google Sign-In is not configured yet. Add VITE_GOOGLE_CLIENT_ID to your .env.local file. See setup instructions below.");
+      setShowSetupTip(true);
+      return;
+    }
+    setOauthLoading("google");
     setErr("");
+    try{
+      await loadScript("https://accounts.google.com/gsi/client","gsi-script");
+      await new Promise((resolve,reject)=>{
+        window.google.accounts.id.initialize({
+          client_id: clientId,
+          callback: async(response)=>{
+            try{
+              const payload=decodeJWT(response.credential);
+              const user=await ParseService.oauthFindOrCreate({
+                email: payload.email,
+                name:  payload.name || payload.given_name || payload.email.split("@")[0],
+                provider:"google",
+              });
+              onAuth(user.get("role")||"barber");
+              resolve();
+            } catch(e){ reject(e); }
+          },
+          auto_select: false,
+          cancel_on_tap_outside: true,
+        });
+        window.google.accounts.id.prompt(notification=>{
+          if(notification.isNotDisplayed()||notification.isSkippedMoment()){
+            // Fallback: open the full popup
+            window.google.accounts.id.renderButton(
+              document.getElementById("google-btn-target"),
+              {theme:"filled_black",size:"large",width:340}
+            );
+            reject(new Error("USE_BUTTON"));
+          }
+        });
+      });
+    } catch(e){
+      if(e.message!=="USE_BUTTON"){
+        setErr(e.message||"Google sign-in failed. Please try again.");
+      }
+    } finally { setOauthLoading(""); }
+  };
+
+  // ── Apple Sign-In ──
+  const handleAppleSignIn=async()=>{
+    const serviceId=import.meta.env.VITE_APPLE_SERVICE_ID;
+    const redirectUri=import.meta.env.VITE_APPLE_REDIRECT_URI||window.location.origin;
+    if(!serviceId){
+      setErr("Apple Sign-In is not configured yet. Add VITE_APPLE_SERVICE_ID to your .env.local file. See setup instructions below.");
+      setShowSetupTip(true);
+      return;
+    }
+    setOauthLoading("apple");
+    setErr("");
+    try{
+      await loadScript(
+        "https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js",
+        "apple-id-script"
+      );
+      window.AppleID.auth.init({
+        clientId:    serviceId,
+        scope:       "name email",
+        redirectURI: redirectUri,
+        usePopup:    true,
+      });
+      const response=await window.AppleID.auth.signIn();
+      const id_token=response?.authorization?.id_token;
+      if(!id_token) throw new Error("No token returned from Apple.");
+      const payload=decodeJWT(id_token);
+      const email=payload.email||payload.sub+"@appleid.com";
+      // Apple only returns name on first sign-in
+      const firstName=response?.user?.name?.firstName||"";
+      const lastName=response?.user?.name?.lastName||"";
+      const fullName=`${firstName} ${lastName}`.trim()||email.split("@")[0];
+      const user=await ParseService.oauthFindOrCreate({email, name:fullName, provider:"apple"});
+      onAuth(user.get("role")||"barber");
+    } catch(e){
+      if(e.error==="popup_closed_by_user"||e.error==="user_trigger_new_sign_in_flow") return;
+      setErr(e.message||"Apple sign-in failed. Please try again.");
+    } finally { setOauthLoading(""); }
+  };
+
+  // ── Email/Password ──
+  const handleSubmit=async()=>{
+    setErr(""); setShowSetupTip(false);
     if(!email){setErr("Email is required");return;}
     if(!pass){setErr("Password is required");return;}
     if(tab==="signup"&&!name){setErr("Name is required");return;}
+    if(pass.length<6){setErr("Password must be at least 6 characters");return;}
     setLoading(true);
     try{
       if(tab==="signup"){
@@ -1811,24 +1950,34 @@ function AuthScreen({onAuth}){
         onAuth(user.get("role")||"barber");
       }
     } catch(e){
-      const msg = e.message||"";
-      if(msg.includes("already taken")||msg.includes("already exists")) setErr("An account with this email already exists.");
-      else if(msg.includes("Invalid username/password")||msg.includes("invalid")) setErr("Incorrect email or password.");
-      else if(msg.includes("username")) setErr("Invalid email address.");
-      else setErr(msg||"Something went wrong. Please try again.");
-    } finally {
-      setLoading(false);
-    }
+      const msg=e.message||"";
+      const code=e.code||0;
+      if(code===101||msg.toLowerCase().includes("invalid username/password")||msg.toLowerCase().includes("invalid credentials")){
+        setErr("Incorrect email or password.");
+      } else if(code===202||msg.includes("already taken")||msg.includes("already exists")){
+        setErr("An account with this email already exists. Try signing in instead.");
+      } else if(code===401||msg.toLowerCase().includes("unauthorized")){
+        setErr("Sign-up is blocked by your Back4App security settings.");
+        setShowSetupTip(true);
+      } else if(code===209||msg.toLowerCase().includes("session")){
+        setErr("Session expired. Please try again.");
+      } else if(msg.includes("username")){
+        setErr("Invalid email address.");
+      } else {
+        setErr(msg||"Something went wrong. Please try again.");
+      }
+    } finally { setLoading(false); }
   };
 
   const handleForgotPassword=async()=>{
-    if(!email){setErr("Enter your email above to reset your password");return;}
+    if(!email){setErr("Enter your email above first");return;}
+    setLoading(true);
     try{
       await ParseService.resetPassword(email);
-      setErr("✓ Password reset email sent! Check your inbox.");
+      setErr("✓ Reset email sent — check your inbox.");
     } catch(e){
       setErr(e.message||"Could not send reset email.");
-    }
+    } finally { setLoading(false); }
   };
 
   return(
@@ -1854,12 +2003,40 @@ function AuthScreen({onAuth}){
         </div>
 
         {/* Social login */}
-        <button className="social-btn" style={{marginBottom:10}}>
-          <span style={{fontSize:18}}>🍎</span> Continue with Apple
+        <button className="social-btn" style={{marginBottom:10,opacity:oauthLoading==="apple"?.7:1}} onClick={handleAppleSignIn} disabled={!!oauthLoading||loading}>
+          {oauthLoading==="apple"
+            ? <span style={{display:"flex",alignItems:"center",gap:8}}><span style={{animation:"scissors 1s linear infinite",display:"inline-block"}}>✂️</span> Signing in…</span>
+            : <><span style={{fontSize:18}}>🍎</span> Continue with Apple</>}
         </button>
-        <button className="social-btn">
-          <span style={{fontSize:18}}>G</span> Continue with Google
+        <button className="social-btn" onClick={handleGoogleSignIn} disabled={!!oauthLoading||loading} style={{opacity:oauthLoading==="google"?.7:1}}>
+          {oauthLoading==="google"
+            ? <span style={{display:"flex",alignItems:"center",gap:8}}><span style={{animation:"scissors 1s linear infinite",display:"inline-block"}}>✂️</span> Signing in…</span>
+            : <><span style={{fontSize:18,fontWeight:700,fontFamily:"serif",color:"#4285F4"}}>G</span> Continue with Google</>}
         </button>
+        {/* Hidden target for Google button fallback */}
+        <div id="google-btn-target" style={{marginTop:4}}/>
+
+        {/* Back4App setup tip — shown when unauthorized error occurs */}
+        {showSetupTip&&(
+          <div style={{background:"rgba(91,156,246,.08)",border:"1px solid rgba(91,156,246,.25)",borderRadius:12,padding:14,marginTop:10}}>
+            <p style={{fontSize:12,fontWeight:700,color:C.blue,marginBottom:8}}>🔧 Back4App Setup Required</p>
+            <p style={{fontSize:11,color:C.muted,lineHeight:1.6,marginBottom:6}}>
+              To fix the "unauthorized" error, go to your Back4App dashboard:
+            </p>
+            {[
+              "1. Open your app → Server Settings",
+              "2. Turn ON "Allow Client Class Creation"",
+              "3. Go to Database → _User class → Class Level Permissions",
+              "4. Set Create + Add Fields to Public (unauthenticated)",
+              "5. Save and retry sign-up",
+            ].map((s,i)=>(
+              <p key={i} style={{fontSize:11,color:C.muted,lineHeight:1.8}}>{s}</p>
+            ))}
+            <p style={{fontSize:11,color:C.muted,marginTop:6}}>
+              For OAuth: add <span style={{color:C.gold}}>VITE_GOOGLE_CLIENT_ID</span> and <span style={{color:C.gold}}>VITE_APPLE_SERVICE_ID</span> to your .env.local
+            </p>
+          </div>
+        )}
 
         <div className="divider">
           <div className="divider-line"/>
