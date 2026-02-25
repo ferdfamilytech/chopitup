@@ -1,4 +1,258 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import Parse from "parse/dist/parse.min.js";
+
+// ── PARSE / BACK4APP INIT ──────────────────────────────────
+// Replace with your keys from back4app.com → Your App → Security & Keys
+const PARSE_APP_ID = import.meta.env.VITE_PARSE_APP_ID || "YOUR_APP_ID_HERE";
+const PARSE_JS_KEY = import.meta.env.VITE_PARSE_JS_KEY || "YOUR_JS_KEY_HERE";
+const PARSE_SERVER  = import.meta.env.VITE_PARSE_SERVER || "https://parseapi.back4app.com";
+
+Parse.initialize(PARSE_APP_ID, PARSE_JS_KEY);
+Parse.serverURL = PARSE_SERVER;
+
+// ── PARSE SERVICE LAYER ────────────────────────────────────
+const ParseService = {
+
+  // ── AUTH ──
+  async signUp(email, password, name, role){
+    const user = new Parse.User();
+    user.set("username", email.toLowerCase().trim());
+    user.set("email",    email.toLowerCase().trim());
+    user.set("password", password);
+    user.set("name",     name);
+    user.set("role",     role);
+    await user.signUp();
+    return user;
+  },
+
+  async logIn(email, password){
+    return await Parse.User.logIn(email.toLowerCase().trim(), password);
+  },
+
+  async logOut(){
+    await Parse.User.logOut();
+  },
+
+  async resetPassword(email){
+    await Parse.User.requestPasswordReset(email.toLowerCase().trim());
+  },
+
+  currentUser(){
+    return Parse.User.current();
+  },
+
+  // ── SHOP PROFILE ──
+  async saveShopProfile(data){
+    const user = Parse.User.current();
+    if(!user) return;
+    Object.entries(data).forEach(([k,v]) => user.set(k, v));
+    await user.save();
+    return user;
+  },
+
+  async getShopProfile(){
+    const user = Parse.User.current();
+    if(!user) return null;
+    return {
+      shopName:   user.get("shopName")   || user.get("name") || "My Shop",
+      barberName: user.get("name")       || "Barber",
+      location:   user.get("location")   || "",
+      phone:      user.get("phone")      || "",
+      role:       user.get("role")       || "barber",
+    };
+  },
+
+  // ── APPOINTMENTS ──
+  async getAppointments(dateStr){
+    const Appointment = Parse.Object.extend("Appointment");
+    const q = new Parse.Query(Appointment);
+    q.equalTo("owner", Parse.User.current());
+    if(dateStr) q.equalTo("dateStr", dateStr);
+    q.descending("createdAt");
+    q.limit(200);
+    const results = await q.find();
+    return results.map(a => ({
+      id:        a.id,
+      parseObj:  a,
+      name:      a.get("clientName")  || "",
+      service:   a.get("service")     || "",
+      time:      a.get("time")        || "",
+      price:     a.get("price")       || 0,
+      phone:     a.get("phone")       || "",
+      recurring: a.get("recurring")   || null,
+      status:    a.get("status")      || "confirmed",
+      dateStr:   a.get("dateStr")     || "",
+      note:      a.get("note")        || "",
+    }));
+  },
+
+  async addAppointment(data){
+    const Appointment = Parse.Object.extend("Appointment");
+    const a = new Appointment();
+    a.set("owner",      Parse.User.current());
+    a.set("clientName", data.name    || "");
+    a.set("service",    data.service || "");
+    a.set("time",       data.time    || "");
+    a.set("price",      Number(data.price) || 0);
+    a.set("phone",      data.phone   || "");
+    a.set("recurring",  data.recurring || null);
+    a.set("status",     data.status  || "confirmed");
+    a.set("dateStr",    data.dateStr || new Date().toLocaleDateString());
+    a.set("note",       data.note    || "");
+    const acl = new Parse.ACL(Parse.User.current());
+    a.setACL(acl);
+    const saved = await a.save();
+    return {...data, id: saved.id, parseObj: saved};
+  },
+
+  async deleteAppointment(id){
+    const Appointment = Parse.Object.extend("Appointment");
+    const q = new Parse.Query(Appointment);
+    const a = await q.get(id);
+    await a.destroy();
+  },
+
+  // ── CLIENTS ──
+  async getClients(){
+    const Client = Parse.Object.extend("Client");
+    const q = new Parse.Query(Client);
+    q.equalTo("owner", Parse.User.current());
+    q.descending("visits");
+    q.limit(500);
+    const results = await q.find();
+    return results.map(c => ({
+      id:           c.id,
+      parseObj:     c,
+      name:         c.get("name")          || "",
+      phone:        c.get("phone")         || "",
+      avatar:       (c.get("name")||"?")[0].toUpperCase(),
+      visits:       c.get("visits")        || 0,
+      spent:        c.get("spent")         || 0,
+      lastVisit:    c.get("lastVisit")     || "—",
+      nextVisit:    c.get("nextVisit")     || "—",
+      preferredSvc: c.get("preferredSvc")  || "",
+      points:       c.get("points")        || 0,
+      tier:         c.get("tier")          || "Bronze",
+      noShows:      c.get("noShows")       || 0,
+      recurring:    c.get("recurring")     || null,
+      notes:        c.get("notes")         || "",
+      gradient:     [c.get("gradientA")||"#C9A84C", c.get("gradientB")||"#7A6230"],
+    }));
+  },
+
+  async addClient(data){
+    const Client = Parse.Object.extend("Client");
+    const c = new Client();
+    c.set("owner",        Parse.User.current());
+    c.set("name",         data.name        || "");
+    c.set("phone",        data.phone       || "");
+    c.set("visits",       data.visits      || 0);
+    c.set("spent",        data.spent       || 0);
+    c.set("points",       data.points      || 0);
+    c.set("tier",         data.tier        || "Bronze");
+    c.set("noShows",      data.noShows     || 0);
+    c.set("preferredSvc", data.preferredSvc|| "");
+    c.set("lastVisit",    data.lastVisit   || "—");
+    c.set("gradientA",    "#C9A84C");
+    c.set("gradientB",    "#7A6230");
+    const acl = new Parse.ACL(Parse.User.current());
+    c.setACL(acl);
+    const saved = await c.save();
+    return {...data, id: saved.id, avatar: (data.name||"?")[0].toUpperCase(), gradient:["#C9A84C","#7A6230"]};
+  },
+
+  async updateClient(id, data){
+    const Client = Parse.Object.extend("Client");
+    const q = new Parse.Query(Client);
+    const c = await q.get(id);
+    Object.entries(data).forEach(([k,v]) => {
+      if(k !== "id" && k !== "parseObj" && k !== "avatar" && k !== "gradient") c.set(k, v);
+    });
+    await c.save();
+  },
+
+  // ── TRANSACTIONS ──
+  async getTransactions(limit=50){
+    const Tx = Parse.Object.extend("Transaction");
+    const q = new Parse.Query(Tx);
+    q.equalTo("owner", Parse.User.current());
+    q.descending("createdAt");
+    q.limit(limit);
+    const results = await q.find();
+    return results.map(t => ({
+      id:      t.id,
+      name:    t.get("clientName") || "",
+      service: t.get("service")    || "",
+      amount:  t.get("amount")     || 0,
+      tip:     t.get("tip")        || 0,
+      date:    t.get("dateLabel")  || "Today",
+      icon:    t.get("icon")       || "✂️",
+      type:    t.get("txType")     || "in",
+      method:  t.get("method")     || "cash",
+    }));
+  },
+
+  async addTransaction(data){
+    const Tx = Parse.Object.extend("Transaction");
+    const t = new Tx();
+    t.set("owner",      Parse.User.current());
+    t.set("clientName", data.name    || "");
+    t.set("service",    data.service || "");
+    t.set("amount",     Number(data.amount) || 0);
+    t.set("tip",        Number(data.tip)    || 0);
+    t.set("dateLabel",  data.date    || "Today");
+    t.set("icon",       data.icon    || "✂️");
+    t.set("txType",     data.type    || "in");
+    t.set("method",     data.method  || "cash");
+    const acl = new Parse.ACL(Parse.User.current());
+    t.setACL(acl);
+    await t.save();
+  },
+
+  // ── WAITLIST ──
+  async getWaitlist(){
+    const WL = Parse.Object.extend("Waitlist");
+    const q = new Parse.Query(WL);
+    q.equalTo("owner", Parse.User.current());
+    q.ascending("position");
+    q.limit(100);
+    const results = await q.find();
+    return results.map(w => ({
+      id:       w.id,
+      parseObj: w,
+      name:     w.get("name")    || "",
+      service:  w.get("service") || "",
+      phone:    w.get("phone")   || "",
+      eta:      w.get("eta")     || "—",
+      note:     w.get("note")    || "",
+      position: w.get("position")|| 0,
+    }));
+  },
+
+  async addToWaitlist(data){
+    const WL = Parse.Object.extend("Waitlist");
+    const w = new WL();
+    w.set("owner",    Parse.User.current());
+    w.set("name",     data.name    || "");
+    w.set("service",  data.service || "");
+    w.set("phone",    data.phone   || "");
+    w.set("eta",      data.eta     || "—");
+    w.set("note",     data.note    || "");
+    w.set("position", data.position|| 99);
+    const acl = new Parse.ACL(Parse.User.current());
+    w.setACL(acl);
+    const saved = await w.save();
+    return {...data, id: saved.id};
+  },
+
+  async removeFromWaitlist(id){
+    const WL = Parse.Object.extend("Waitlist");
+    const q = new Parse.Query(WL);
+    const w = await q.get(id);
+    await w.destroy();
+  },
+};
+
 
 // ── DESIGN TOKENS ──
 const C = {
@@ -1542,13 +1796,39 @@ function AuthScreen({onAuth}){
   const [loading,setLoading]=useState(false);
   const [err,setErr]=useState("");
 
-  const handleSubmit=()=>{
+  const handleSubmit=async()=>{
     setErr("");
     if(!email){setErr("Email is required");return;}
     if(!pass){setErr("Password is required");return;}
     if(tab==="signup"&&!name){setErr("Name is required");return;}
     setLoading(true);
-    setTimeout(()=>{setLoading(false);onAuth(role);},1400);
+    try{
+      if(tab==="signup"){
+        await ParseService.signUp(email, pass, name, role);
+        onAuth(role);
+      } else {
+        const user = await ParseService.logIn(email, pass);
+        onAuth(user.get("role")||"barber");
+      }
+    } catch(e){
+      const msg = e.message||"";
+      if(msg.includes("already taken")||msg.includes("already exists")) setErr("An account with this email already exists.");
+      else if(msg.includes("Invalid username/password")||msg.includes("invalid")) setErr("Incorrect email or password.");
+      else if(msg.includes("username")) setErr("Invalid email address.");
+      else setErr(msg||"Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPassword=async()=>{
+    if(!email){setErr("Enter your email above to reset your password");return;}
+    try{
+      await ParseService.resetPassword(email);
+      setErr("✓ Password reset email sent! Check your inbox.");
+    } catch(e){
+      setErr(e.message||"Could not send reset email.");
+    }
   };
 
   return(
@@ -1625,7 +1905,7 @@ function AuthScreen({onAuth}){
           {loading?<span style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8}}><span style={{animation:"scissors 1s linear infinite",display:"inline-block"}}>✂️</span> {tab==="login"?"Signing In...":"Creating Account..."}</span>:(tab==="login"?"Sign In →":"Create Account →")}
         </button>
 
-        {tab==="login"&&<p style={{textAlign:"center",fontSize:12,color:C.muted}}>Forgot password? <span style={{color:C.gold,cursor:"pointer"}}>Reset it</span></p>}
+        {tab==="login"&&<p style={{textAlign:"center",fontSize:12,color:C.muted}}>Forgot password? <span style={{color:C.gold,cursor:"pointer"}} onClick={handleForgotPassword}>Reset it</span></p>}
         {tab==="signup"&&<p style={{textAlign:"center",fontSize:11,color:C.dim,lineHeight:1.5}}>By continuing, you agree to our <span style={{color:C.gold}}>Terms</span> and <span style={{color:C.gold}}>Privacy Policy</span></p>}
 
         {/* Demo shortcut */}
@@ -3577,10 +3857,24 @@ function ClientsScreen(){
   const [histTab,setHistTab]=useState("history");
   const [noteText,setNoteText]=useState("");
   const [loading,setLoading]=useState(true);
+  const [clients,setClients]=useState(CLIENTS);
 
-  useEffect(()=>{const t=setTimeout(()=>setLoading(false),800);return()=>clearTimeout(t);},[]);
+  useEffect(()=>{
+    let cancelled=false;
+    (async()=>{
+      try{
+        const c=await ParseService.getClients();
+        if(!cancelled) setClients(c.length?c:CLIENTS);
+      } catch(e){
+        if(!cancelled) setClients(CLIENTS);
+      } finally {
+        if(!cancelled) setLoading(false);
+      }
+    })();
+    return()=>{cancelled=true;};
+  },[]);
 
-  const filtered=CLIENTS.filter(c=>c.name.toLowerCase().includes(search.toLowerCase())||c.phone.includes(search));
+  const filtered=clients.filter(c=>c.name.toLowerCase().includes(search.toLowerCase())||c.phone.includes(search));
   const tier=sel?LOYALTY_TIERS.find(t=>sel.points>=t.min&&sel.points<=t.max):null;
   const nextTier=sel?LOYALTY_TIERS.find(t=>t.min>sel.points):null;
   const pct=sel&&nextTier?Math.round(((sel.points-tier.min)/(nextTier.min-tier.min))*100):100;
@@ -4290,28 +4584,50 @@ function Dashboard({onAdd,onAdmin,onBookingPage,onWaitlist,onNoShow,shopName="Fr
 // APPOINTMENTS (with Waitlist tab + No-Show marking)
 // ══════════════════════════════════════════
 function Appointments({onAdd,onWaitlist,onNoShow}){
-  const [appts,setAppts]=useState(INIT_APPTS);
-  const [waitlist]=useState(WAITLIST_INIT);
+  const [appts,setAppts]=useState([]);
+  const [waitlist,setWaitlist]=useState([]);
   const [sel,setSel]=useState(null);
   const [tab,setTab]=useState("today");
   const [toast,setToast]=useState("");
-  const [cancelFlow,setCancelFlow]=useState(null); // appt being cancelled
-  const [notifyWL,setNotifyWL]=useState(false);   // offer to notify waitlist after cancel
+  const [cancelFlow,setCancelFlow]=useState(null);
+  const [notifyWL,setNotifyWL]=useState(false);
+  const [dbLoading,setDbLoading]=useState(true);
 
   const showToast=(msg)=>{setToast(msg);setTimeout(()=>setToast(""),2500);};
 
-  const handleCancel=(appt)=>{
+  // Load from Parse on mount
+  useEffect(()=>{
+    let cancelled=false;
+    (async()=>{
+      try{
+        const [a,w]=await Promise.all([
+          ParseService.getAppointments(),
+          ParseService.getWaitlist(),
+        ]);
+        if(!cancelled){ setAppts(a.length?a:INIT_APPTS); setWaitlist(w.length?w:WAITLIST_INIT); }
+      } catch(e){
+        // Offline or no session — fall back to mock data
+        if(!cancelled){ setAppts(INIT_APPTS); setWaitlist(WAITLIST_INIT); }
+      } finally {
+        if(!cancelled) setDbLoading(false);
+      }
+    })();
+    return()=>{cancelled=true;};
+  },[]);
+
+  const handleCancel=async(appt)=>{
     setAppts(a=>a.filter(x=>x.id!==appt.id));
     setSel(null);
+    try{ if(appt.id && !String(appt.id).match(/^\d+$/)) await ParseService.deleteAppointment(appt.id); } catch(e){}
     if(waitlist.length>0){setCancelFlow(appt);setNotifyWL(true);}
     else showToast("Appointment cancelled");
   };
 
-  const handleMarkNoShow=(appt)=>{
+  const handleMarkNoShow=async(appt)=>{
     setAppts(a=>a.filter(x=>x.id!==appt.id));
     setSel(null);
+    try{ if(appt.id && !String(appt.id).match(/^\d+$/)) await ParseService.deleteAppointment(appt.id); } catch(e){}
     showToast(`${appt.name} marked as no-show`);
-    // Bubble up to no-show screen if needed
   };
 
   return(
@@ -4919,7 +5235,17 @@ function AddAppt({onClose}){
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
             <button className="bo" onClick={()=>setStep(2)}>← Back</button>
-            <button className="btn bg" onClick={onClose}>✓ Book {slot}</button>
+            <button className="btn bg" onClick={async()=>{
+              const price=SVCS.find(s=>s.name===svc)?.price||0;
+              try{
+                await ParseService.addAppointment({
+                  name, phone, service:svc, time:slot,
+                  price, recurring:recurring==="none"?null:recurring,
+                  dateStr:new Date().toLocaleDateString(),
+                });
+              }catch(e){}
+              onClose();
+            }}>✓ Book {slot}</button>
           </div>
         </>}
       </div>
@@ -13478,6 +13804,24 @@ export default function App(){
   // App flow: splash → auth → onboarding → main
   const [appState,setAppState]=useState("splash"); // splash | auth | onboarding | main
   const [userData,setUserData]=useState({shopName:"Fresh Cutz",barberName:"Marcus Johnson",role:"barber"});
+
+  // On splash done: check if already logged in via Parse session token
+  const handleSplashDone=useCallback(async()=>{
+    const current=ParseService.currentUser();
+    if(current){
+      try{
+        await current.fetch(); // re-validate session with server
+        const profile=await ParseService.getShopProfile();
+        if(profile) setUserData(profile);
+        setAppState("main");
+      } catch(e){
+        // Session expired or invalid — go to auth
+        setAppState("auth");
+      }
+    } else {
+      setAppState("auth");
+    }
+  },[]);
   const [tab,setTab]=useState("home");
   const [addOpen,setAddOpen]=useState(false);
   const [adminOpen,setAdminOpen]=useState(false);
@@ -13547,13 +13891,25 @@ export default function App(){
     {id:"more",icon:"⚡",lbl:"More"},
   ];
 
-  const handleAuth=(role)=>{
+  const handleAuth=async(role)=>{
     setUserData(u=>({...u,role}));
-    setAppState("onboarding");
+    // New users (just signed up) go to onboarding; existing users go straight to main
+    const current=ParseService.currentUser();
+    const isNew = current && !current.get("shopName");
+    if(isNew){
+      setAppState("onboarding");
+    } else {
+      const profile=await ParseService.getShopProfile();
+      if(profile) setUserData(profile);
+      setAppState("main");
+    }
   };
 
-  const handleOnboardDone=(info)=>{
-    if(info) setUserData(u=>({...u,...info}));
+  const handleOnboardDone=async(info)=>{
+    if(info){
+      setUserData(u=>({...u,...info}));
+      try{ await ParseService.saveShopProfile(info); } catch(e){}
+    }
     setAppState("main");
   };
 
@@ -13562,7 +13918,7 @@ export default function App(){
     <>
       <style>{CSS}</style>
       <div className="app">
-        <SplashScreen onDone={()=>setAppState("auth")}/>
+        <SplashScreen onDone={handleSplashDone}/>
       </div>
     </>
   );
@@ -13759,7 +14115,7 @@ export default function App(){
         {tab==="more"&&moreTab==="loyalty"&&<><LoyaltyScreen/><div style={{padding:"0 20px 20px"}}><button className="bo" style={{width:"100%",padding:"12px"}} onClick={()=>setMoreTab(null)}>← Back</button></div></>}
         {tab==="more"&&moreTab==="gifts"&&<GiftCardsScreen onBack={()=>setMoreTab(null)}/>}
         {tab==="more"&&moreTab==="marketing"&&<Marketing onBack={()=>setMoreTab(null)}/>}
-        {tab==="more"&&moreTab==="profile"&&<Profile onAdmin={()=>setAdminOpen(true)} onBack={()=>setMoreTab(null)} onSignOut={()=>{setAppState("auth");setTab("home");setMoreTab(null);}} userData={userData}/>}
+        {tab==="more"&&moreTab==="profile"&&<Profile onAdmin={()=>setAdminOpen(true)} onBack={()=>setMoreTab(null)} onSignOut={async()=>{try{await ParseService.logOut();}catch(e){}setAppState("auth");setTab("home");setMoreTab(null);}} userData={userData}/>}
 
         {tab==="appts"&&<button className="fab" onClick={()=>setAddOpen(true)}>+</button>}
 
