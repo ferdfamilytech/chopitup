@@ -1475,6 +1475,10 @@ const BARBER_UTIL=[
 
 // ── SHARED HELPERS ──
 function Tog({on,toggle}){return <div className={`tgl${on?" on":""}`} onClick={toggle}><div className="tth"/></div>;}
+function Stars({n,count,size=14}){
+  const filled=n??count??0;
+  return <div style={{display:"flex",gap:2}}>{[1,2,3,4,5].map(s=><span key={s} style={{fontSize:size,filter:s<=filled?"none":"grayscale(100%)",opacity:s<=filled?1:.3}}>⭐</span>)}</div>;
+}
 function TierBadge({tier}){
   const colors={Bronze:"#CD7F32",Silver:"#9E9E9E",Gold:C.gold,Platinum:"#C8D8FF"};
   return <span style={{fontSize:11,fontWeight:700,color:colors[tier]||C.muted,background:`${colors[tier]}18`,border:`1px solid ${colors[tier]}44`,borderRadius:20,padding:"2px 8px"}}>{tier}</span>;
@@ -1809,7 +1813,7 @@ function OnboardingScreen({onDone}){
 
       {/* CTA */}
       <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:430,padding:"20px 24px 36px",background:`linear-gradient(180deg,transparent,${C.bg} 40%)`,zIndex:10}}>
-        <button className="btn bg" onClick={step===TOTAL-1?onDone:()=>setStep(s=>s+1)} style={{fontSize:15}}>
+        <button className="btn bg" onClick={step===TOTAL-1?()=>onDone({shopName,barberName:shopName,location,phone}):()=>setStep(s=>s+1)} style={{fontSize:15}}>
           {step===TOTAL-1?"🚀  Launch My Shop":"Continue →"}
         </button>
       </div>
@@ -4169,7 +4173,7 @@ function AdminDashboard({onClose}){
 // ══════════════════════════════════════════
 // DASHBOARD
 // ══════════════════════════════════════════
-function Dashboard({onAdd,onAdmin,onBookingPage,onWaitlist,onNoShow}){
+function Dashboard({onAdd,onAdmin,onBookingPage,onWaitlist,onNoShow,shopName="Fresh Cutz"}){
   const [online,setOnline]=useState(true);
   const total=TXS.filter(t=>t.date==="Today"&&t.type==="in").reduce((s,t)=>s+t.amount+t.tip,0);
   return(
@@ -4178,7 +4182,7 @@ function Dashboard({onAdd,onAdmin,onBookingPage,onWaitlist,onNoShow}){
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:4}}>
           <div>
             <p style={{fontSize:12,color:C.muted,marginBottom:2}}>Thursday, February 19</p>
-            <h1 className="pf" style={{fontSize:26,fontWeight:700,lineHeight:1.15}}>Good morning,<br/>Marcus 👋</h1>
+            <h1 className="pf" style={{fontSize:26,fontWeight:700,lineHeight:1.15}}>Good morning,<br/>{shopName} 👋</h1>
           </div>
           <div style={{display:"flex",gap:8,alignItems:"center"}}>
             <div onClick={onAdmin} style={{background:"rgba(201,168,76,.1)",border:"1px solid rgba(201,168,76,.25)",borderRadius:10,padding:"7px 10px",cursor:"pointer",fontSize:13,fontWeight:600,color:C.gold}}>Admin</div>
@@ -4522,7 +4526,7 @@ function Marketing({onBack}){
 // ══════════════════════════════════════════
 // PROFILE (v4 preserved)
 // ══════════════════════════════════════════
-function Profile({onAdmin,onBack,onSignOut}){
+function Profile({onAdmin,onBack,onSignOut,userData={shopName:"Fresh Cutz",barberName:"Marcus Johnson",role:"barber"}}){
   const [cfg,setCfg]=useState({sms:true,auto:true,nosh:false,online:true,tips:true,report:true});
   const [subOpen,setSubOpen]=useState(false);
   const [subTab,setSubTab]=useState("overview"); // overview | plans | payment | cancel | invoices
@@ -4587,9 +4591,9 @@ function Profile({onAdmin,onBack,onSignOut}){
       <div className="sec">
         {/* Avatar card */}
         <div className="card" style={{textAlign:"center",padding:24,marginBottom:16}}>
-          <div className="pav" style={{width:80,height:80,margin:"0 auto 12px",fontSize:32}}>M</div>
-          <h3 className="pf" style={{fontSize:22,fontWeight:700}}>Marcus Johnson</h3>
-          <p style={{fontSize:13,color:C.muted,marginTop:2}}>@marcus · New Orleans, LA</p>
+          <div className="pav" style={{width:80,height:80,margin:"0 auto 12px",fontSize:32}}>{(userData.barberName||userData.shopName||"M")[0].toUpperCase()}</div>
+          <h3 className="pf" style={{fontSize:22,fontWeight:700}}>{userData.barberName||userData.shopName||"Marcus Johnson"}</h3>
+          <p style={{fontSize:13,color:C.muted,marginTop:2}}>{userData.shopName||"Fresh Cutz"}{userData.location?` · ${userData.location}`:""}</p>
           <div style={{display:"flex",justifyContent:"center",gap:24,marginTop:16}}>
             {[["247","clients"],["4.9⭐","rating"],["Gold","loyalty tier"]].map(([v,l])=>(
               <div key={l}><p style={{fontSize:18,fontWeight:700,color:l==="loyalty tier"?C.gold:C.text}}>{v}</p><p style={{fontSize:11,color:C.muted}}>{l}</p></div>
@@ -5097,16 +5101,6 @@ function ReviewsScreen({onClose}){
     showToast(`Review request sent to ${reqClient.name}`);
     setReqModal(false);setReqClient(null);
   };
-
-  function Stars({count,size=14,interactive=false,onChange}){
-    return(
-      <div className="star-row">
-        {[1,2,3,4,5].map(s=>(
-          <span key={s} className="star" style={{fontSize:size,filter:s<=count?"none":"grayscale(100%)",opacity:s<=count?1:.3}} onClick={()=>interactive&&onChange&&onChange(s)}>⭐</span>
-        ))}
-      </div>
-    );
-  }
 
   return(
     <div className="modfull">
@@ -13483,6 +13477,7 @@ function PushDeepLinksScreen({onClose}){
 export default function App(){
   // App flow: splash → auth → onboarding → main
   const [appState,setAppState]=useState("splash"); // splash | auth | onboarding | main
+  const [userData,setUserData]=useState({shopName:"Fresh Cutz",barberName:"Marcus Johnson",role:"barber"});
   const [tab,setTab]=useState("home");
   const [addOpen,setAddOpen]=useState(false);
   const [adminOpen,setAdminOpen]=useState(false);
@@ -13553,10 +13548,12 @@ export default function App(){
   ];
 
   const handleAuth=(role)=>{
+    setUserData(u=>({...u,role}));
     setAppState("onboarding");
   };
 
-  const handleOnboardDone=()=>{
+  const handleOnboardDone=(info)=>{
+    if(info) setUserData(u=>({...u,...info}));
     setAppState("main");
   };
 
@@ -13609,7 +13606,7 @@ export default function App(){
         </div>
 
         {/* Screens */}
-        {tab==="home"&&<Dashboard onAdd={()=>setAddOpen(true)} onAdmin={()=>setAdminOpen(true)} onBookingPage={()=>setBookingOpen(true)} onWaitlist={()=>setWaitlistOpen(true)} onNoShow={()=>setNoShowOpen(true)}/>}
+        {tab==="home"&&<Dashboard onAdd={()=>setAddOpen(true)} onAdmin={()=>setAdminOpen(true)} onBookingPage={()=>setBookingOpen(true)} onWaitlist={()=>setWaitlistOpen(true)} onNoShow={()=>setNoShowOpen(true)} shopName={userData.shopName}/>}
         {tab==="appts"&&<Appointments onAdd={()=>setAddOpen(true)} onWaitlist={()=>setWaitlistOpen(true)} onNoShow={()=>setNoShowOpen(true)}/>}
         {tab==="clients"&&<ClientsScreen/>}
         {tab==="pay"&&<Payments/>}
@@ -13762,7 +13759,7 @@ export default function App(){
         {tab==="more"&&moreTab==="loyalty"&&<><LoyaltyScreen/><div style={{padding:"0 20px 20px"}}><button className="bo" style={{width:"100%",padding:"12px"}} onClick={()=>setMoreTab(null)}>← Back</button></div></>}
         {tab==="more"&&moreTab==="gifts"&&<GiftCardsScreen onBack={()=>setMoreTab(null)}/>}
         {tab==="more"&&moreTab==="marketing"&&<Marketing onBack={()=>setMoreTab(null)}/>}
-        {tab==="more"&&moreTab==="profile"&&<Profile onAdmin={()=>setAdminOpen(true)} onBack={()=>setMoreTab(null)} onSignOut={()=>{setAppState("auth");setTab("home");setMoreTab(null);}}/>}
+        {tab==="more"&&moreTab==="profile"&&<Profile onAdmin={()=>setAdminOpen(true)} onBack={()=>setMoreTab(null)} onSignOut={()=>{setAppState("auth");setTab("home");setMoreTab(null);}} userData={userData}/>}
 
         {tab==="appts"&&<button className="fab" onClick={()=>setAddOpen(true)}>+</button>}
 
