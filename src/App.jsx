@@ -4522,7 +4522,7 @@ function Marketing({onBack}){
 // ══════════════════════════════════════════
 // PROFILE (v4 preserved)
 // ══════════════════════════════════════════
-function Profile({onAdmin,onBack}){
+function Profile({onAdmin,onBack,onSignOut}){
   const [cfg,setCfg]=useState({sms:true,auto:true,nosh:false,online:true,tips:true,report:true});
   const [subOpen,setSubOpen]=useState(false);
   const [subTab,setSubTab]=useState("overview"); // overview | plans | payment | cancel | invoices
@@ -4616,7 +4616,7 @@ function Profile({onAdmin,onBack}){
             <div key={k} className="trow"><div><p style={{fontSize:14,fontWeight:600}}>{l}</p><p style={{fontSize:12,color:C.muted}}>{s}</p></div><Tog on={cfg[k]} toggle={()=>setCfg(c=>({...c,[k]:!c[k]}))}/></div>
           ))}
         </div>
-        <button style={{width:"100%",marginBottom:8,borderRadius:12,padding:"13px",background:"transparent",border:"1px solid rgba(224,82,82,.3)",color:C.red,cursor:"pointer",fontFamily:"'DM Sans',sans-serif",fontSize:14,fontWeight:600}}>Sign Out</button>
+        <button onClick={()=>{if(onSignOut)onSignOut();}} style={{width:"100%",marginBottom:8,borderRadius:12,padding:"13px",background:"transparent",border:"1px solid rgba(224,82,82,.3)",color:C.red,cursor:"pointer",fontFamily:"'DM Sans',sans-serif",fontSize:14,fontWeight:600}}>Sign Out</button>
         <p style={{fontSize:11,color:C.dim,textAlign:"center",marginBottom:20}}>Chop-It-Up v11.0 · Terms · Privacy</p>
       </div>
 
@@ -13762,7 +13762,7 @@ export default function App(){
         {tab==="more"&&moreTab==="loyalty"&&<><LoyaltyScreen/><div style={{padding:"0 20px 20px"}}><button className="bo" style={{width:"100%",padding:"12px"}} onClick={()=>setMoreTab(null)}>← Back</button></div></>}
         {tab==="more"&&moreTab==="gifts"&&<GiftCardsScreen onBack={()=>setMoreTab(null)}/>}
         {tab==="more"&&moreTab==="marketing"&&<Marketing onBack={()=>setMoreTab(null)}/>}
-        {tab==="more"&&moreTab==="profile"&&<Profile onAdmin={()=>setAdminOpen(true)} onBack={()=>setMoreTab(null)}/>}
+        {tab==="more"&&moreTab==="profile"&&<Profile onAdmin={()=>setAdminOpen(true)} onBack={()=>setMoreTab(null)} onSignOut={()=>{setAppState("auth");setTab("home");setMoreTab(null);}}/>}
 
         {tab==="appts"&&<button className="fab" onClick={()=>setAddOpen(true)}>+</button>}
 
