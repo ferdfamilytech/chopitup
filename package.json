@@ -2,7 +2,7 @@
   "name": "chop-it-up",
   "version": "15.0.0",
   "private": true,
-  "description": "Chop-It-Up — Barbershop Management Platform",
+  "description": "Chop-It-Up \u2014 Barbershop Management Platform",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -11,7 +11,8 @@
   },
   "dependencies": {
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "parse": "^4.3.0"
   },
   "devDependencies": {
     "@types/react": "^18.3.1",
