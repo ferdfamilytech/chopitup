@@ -2025,7 +2025,7 @@ function AuthScreen({onAuth}){
             </p>
             {[
               "1. Open your app → Server Settings",
-              "2. Turn ON "Allow Client Class Creation"",
+              "2. Turn ON: Allow Client Class Creation",
               "3. Go to Database → _User class → Class Level Permissions",
               "4. Set Create + Add Fields to Public (unauthenticated)",
               "5. Save and retry sign-up",
