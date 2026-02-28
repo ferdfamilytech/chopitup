@@ -3,8 +3,8 @@ import Parse from "parse/dist/parse.min.js";
 
 // ── PARSE / BACK4APP INIT ──────────────────────────────────
 // Replace with your keys from back4app.com → Your App → Security & Keys
-const PARSE_APP_ID = import.meta.env.VITE_PARSE_APP_ID || "mBjnnVdvIc0aCcCA9B6GPIjumASWsziMxkrc0z08";
-const PARSE_JS_KEY = import.meta.env.VITE_PARSE_JS_KEY || "ECbKxsA0Kmrnt8wRulhYA7oPgrLS4RKTctU3vFd9";
+const PARSE_APP_ID = import.meta.env.VITE_PARSE_APP_ID || "YOUR_APP_ID_HERE";
+const PARSE_JS_KEY = import.meta.env.VITE_PARSE_JS_KEY || "YOUR_JS_KEY_HERE";
 const PARSE_SERVER  = import.meta.env.VITE_PARSE_SERVER || "https://parseapi.back4app.com";
 
 Parse.initialize(PARSE_APP_ID, PARSE_JS_KEY);
@@ -53,12 +53,15 @@ const ParseService = {
   async getShopProfile(){
     const user = Parse.User.current();
     if(!user) return null;
+    const googleName = user.get("name")||"";
+    const savedShop  = user.get("shopName")||"";
     return {
-      shopName:   user.get("shopName")   || user.get("name") || "My Shop",
-      barberName: user.get("name")       || "Barber",
+      shopName:   savedShop || googleName || "",
+      barberName: googleName || savedShop || "",
       location:   user.get("location")   || "",
       phone:      user.get("phone")      || "",
       role:       user.get("role")       || "barber",
+      email:      user.get("email")      || "",
     };
   },
 
@@ -2098,9 +2101,9 @@ function AuthScreen({onAuth}){
 // ══════════════════════════════════════════
 // ONBOARDING FLOW (5 steps)
 // ══════════════════════════════════════════
-function OnboardingScreen({onDone}){
+function OnboardingScreen({onDone, initialName=""}){
   const [step,setStep]=useState(0);
-  const [shopName,setShopName]=useState("");
+  const [shopName,setShopName]=useState(initialName);
   const [location,setLocation]=useState("");
   const [phone,setPhone]=useState("");
   const [bio,setBio]=useState("");
@@ -2270,7 +2273,7 @@ function OnboardingScreen({onDone}){
 
       {/* CTA */}
       <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:430,padding:"20px 24px 36px",background:`linear-gradient(180deg,transparent,${C.bg} 40%)`,zIndex:10}}>
-        <button className="btn bg" onClick={step===TOTAL-1?()=>onDone({shopName,barberName:shopName,location,phone}):()=>setStep(s=>s+1)} style={{fontSize:15}}>
+        <button className="btn bg" onClick={step===TOTAL-1?()=>onDone({shopName:shopName||initialName,barberName:shopName||initialName,location,phone}):step===0&&!shopName.trim()?()=>{}:()=>setStep(s=>s+1)} disabled={step===0&&!shopName.trim()} style={{fontSize:15,opacity:step===0&&!shopName.trim()?.5:1}}>
           {step===TOTAL-1?"🚀  Launch My Shop":"Continue →"}
         </button>
       </div>
@@ -13989,8 +13992,15 @@ export default function App(){
       try{
         await current.fetch(); // re-validate session with server
         const profile=await ParseService.getShopProfile();
-        if(profile) setUserData(profile);
-        setAppState("main");
+        if(profile && (profile.shopName||profile.barberName)){
+          setUserData(profile);
+          setAppState("main");
+        } else {
+          // Logged in but never completed onboarding
+          const displayName=current.get("name")||"";
+          setUserData(u=>({...u, barberName:displayName, shopName:displayName}));
+          setAppState("onboarding");
+        }
       } catch(e){
         // Session expired or invalid — go to auth
         setAppState("auth");
@@ -14069,15 +14079,22 @@ export default function App(){
   ];
 
   const handleAuth=async(role)=>{
-    setUserData(u=>({...u,role}));
-    // New users (just signed up) go to onboarding; existing users go straight to main
+    try{
+      // Re-fetch user from server to get latest fields (shopName, etc.)
+      const current=ParseService.currentUser();
+      if(current) await current.fetch();
+    } catch(e){}
     const current=ParseService.currentUser();
-    const isNew = current && !current.get("shopName");
+    const profile=await ParseService.getShopProfile();
+    // A user is "new" if they have no shopName saved yet
+    const isNew = !current?.get("shopName");
     if(isNew){
+      // Pre-populate onboarding with whatever name we have (Google display name, etc.)
+      const displayName = current?.get("name")||"";
+      setUserData(u=>({...u, role, barberName:displayName, shopName:displayName}));
       setAppState("onboarding");
     } else {
-      const profile=await ParseService.getShopProfile();
-      if(profile) setUserData(profile);
+      if(profile) setUserData({...profile, role:profile.role||role});
       setAppState("main");
     }
   };
@@ -14115,7 +14132,7 @@ export default function App(){
     <>
       <style>{CSS}</style>
       <div className="app">
-        <OnboardingScreen onDone={handleOnboardDone}/>
+        <OnboardingScreen onDone={handleOnboardDone} initialName={userData.barberName||""}/>
       </div>
     </>
   );
