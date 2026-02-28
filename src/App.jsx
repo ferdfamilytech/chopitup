@@ -3,8 +3,8 @@ import Parse from "parse/dist/parse.min.js";
 
 // ── PARSE / BACK4APP INIT ──────────────────────────────────
 // Replace with your keys from back4app.com → Your App → Security & Keys
-const PARSE_APP_ID = import.meta.env.VITE_PARSE_APP_ID || "YOUR_APP_ID_HERE";
-const PARSE_JS_KEY = import.meta.env.VITE_PARSE_JS_KEY || "YOUR_JS_KEY_HERE";
+const PARSE_APP_ID = import.meta.env.VITE_PARSE_APP_ID || "mBjnnVdvIc0aCcCA9B6GPIjumASWsziMxkrc0z08";
+const PARSE_JS_KEY = import.meta.env.VITE_PARSE_JS_KEY || "ECbKxsA0Kmrnt8wRulhYA7oPgrLS4RKTctU3vFd9";
 const PARSE_SERVER  = import.meta.env.VITE_PARSE_SERVER || "https://parseapi.back4app.com";
 
 Parse.initialize(PARSE_APP_ID, PARSE_JS_KEY);
