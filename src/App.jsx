@@ -2526,8 +2526,12 @@ function ClientBookingPage({onClose}){
 // ══════════════════════════════════════════
 // WAITLIST SCREEN
 // ══════════════════════════════════════════
-function WaitlistScreen({onClose}){
-  const [waitlist,setWaitlist]=useState(WAITLIST_INIT);
+function WaitlistScreen({onClose,isDemo=false}){
+  const [waitlist,setWaitlist]=useState(isDemo?WAITLIST_INIT:[]);
+  useEffect(()=>{
+    if(isDemo) return;
+    ParseService.getWaitlist().then(w=>setWaitlist(w)).catch(()=>{});
+  },[isDemo]);
   const [tab,setTab]=useState("queue");
   const [addOpen,setAddOpen]=useState(false);
   const [notifyOpen,setNotifyOpen]=useState(null); // waitlist entry
@@ -4199,8 +4203,8 @@ function ClientsScreen({isDemo=false}){
 // ══════════════════════════════════════════
 function LoyaltyScreen(){
   const [tab,setTab]=useState("overview");
-  const totalActive=CLIENTS.length;
-  const tierCounts=LOYALTY_TIERS.map(t=>({...t,count:CLIENTS.filter(c=>c.points>=t.min&&c.points<=t.max).length}));
+  const totalActive=0;
+  const tierCounts=LOYALTY_TIERS.map(t=>({...t,count:0}));
   return(
     <div className="screen screen-enter">
       <div className="hdr" style={{paddingBottom:16}}>
@@ -4677,7 +4681,7 @@ function Dashboard({onAdd,onAdmin,onBookingPage,onWaitlist,onNoShow,shopName="Fr
           <div style={{width:8,height:8,borderRadius:"50%",background:online?C.green:C.red,boxShadow:`0 0 8px ${online?C.green:C.red}`}}/>
           <div style={{flex:1}}>
             <p style={{fontSize:13,fontWeight:600}}>{online?"Accepting Appointments":"Closed for Bookings"}</p>
-            <p style={{fontSize:11,color:C.muted}}>4 appts today · $230 projected</p>
+            <p style={{fontSize:11,color:C.muted}}>{isDemo?"4 appts today · $230 projected":"Open for bookings"}</p>
           </div>
           <Tog on={online} toggle={()=>setOnline(o=>!o)}/>
         </div>
@@ -4696,8 +4700,8 @@ function Dashboard({onAdd,onAdmin,onBookingPage,onWaitlist,onNoShow,shopName="Fr
         <div onClick={onWaitlist} style={{background:"rgba(91,156,246,.06)",border:"1px solid rgba(91,156,246,.15)",borderRadius:12,padding:"10px 14px",marginTop:8,display:"flex",alignItems:"center",gap:10,cursor:"pointer"}}>
           <span style={{fontSize:16}}>📋</span>
           <div style={{flex:1}}>
-            <p style={{fontSize:12,fontWeight:600,color:C.blue}}>{WAITLIST_INIT.length} clients on waitlist</p>
-            <p style={{fontSize:11,color:C.dim}}>Khalil R. is next · {WAITLIST_INIT[0]?.eta} wait</p>
+            <p style={{fontSize:12,fontWeight:600,color:C.blue}}>{isDemo?WAITLIST_INIT.length:0} clients on waitlist</p>
+            <p style={{fontSize:11,color:C.dim}}>{isDemo?"Khalil R. is next · 8 min wait":"No one waiting right now"}</p>
           </div>
           <span className="badge bblu" style={{fontSize:10}}>{isDemo?WAITLIST_INIT.length:0}</span>
         </div>
@@ -4713,10 +4717,10 @@ function Dashboard({onAdd,onAdmin,onBookingPage,onWaitlist,onNoShow,shopName="Fr
 
       <div className="sec">
         <div className="sgrid">
-          <div className="sc"><p style={{fontSize:11,color:C.muted}}>Today's Revenue</p><p className="pf" style={{fontSize:24,fontWeight:700,color:C.gold}}>${total.toFixed(0)}</p><p style={{fontSize:11,color:C.green,marginTop:4}}>↑ 18% vs last wk</p></div>
-          <div className="sc"><p style={{fontSize:11,color:C.muted}}>Appts Today</p><p className="pf" style={{fontSize:24,fontWeight:700}}>4</p><p style={{fontSize:11,color:C.muted,marginTop:4}}>2 remaining</p></div>
-          <div className="sc"><p style={{fontSize:11,color:C.muted}}>Loyalty Members</p><p className="pf" style={{fontSize:24,fontWeight:700,color:C.purple}}>6</p><p style={{fontSize:11,color:C.purple,marginTop:4}}>1 Gold tier</p></div>
-          <div className="sc"><p style={{fontSize:11,color:C.muted}}>Growth Score</p><p className="pf" style={{fontSize:24,fontWeight:700,color:C.green}}>87</p><p style={{fontSize:11,color:C.muted,marginTop:4}}>top 15%</p></div>
+          <div className="sc"><p style={{fontSize:11,color:C.muted}}>Today's Revenue</p><p className="pf" style={{fontSize:24,fontWeight:700,color:C.gold}}>${total.toFixed(0)}</p><p style={{fontSize:11,color:C.green,marginTop:4}}>{isDemo?"↑ 18% vs last wk":"—"}</p></div>
+          <div className="sc"><p style={{fontSize:11,color:C.muted}}>Appts Today</p><p className="pf" style={{fontSize:24,fontWeight:700}}>{isDemo?4:0}</p><p style={{fontSize:11,color:C.muted,marginTop:4}}>{isDemo?"2 remaining":"No appts yet"}</p></div>
+          <div className="sc"><p style={{fontSize:11,color:C.muted}}>Loyalty Members</p><p className="pf" style={{fontSize:24,fontWeight:700,color:C.purple}}>{isDemo?6:0}</p><p style={{fontSize:11,color:C.purple,marginTop:4}}>{isDemo?"1 Gold tier":"Add clients"}</p></div>
+          <div className="sc"><p style={{fontSize:11,color:C.muted}}>Growth Score</p><p className="pf" style={{fontSize:24,fontWeight:700,color:C.green}}>{isDemo?87:"—"}</p><p style={{fontSize:11,color:C.muted,marginTop:4}}>{isDemo?"top 15%":"Getting started"}</p></div>
         </div>
       </div>
 
@@ -4749,7 +4753,7 @@ function Dashboard({onAdd,onAdmin,onBookingPage,onWaitlist,onNoShow,shopName="Fr
 
       <div className="sec" style={{marginBottom:20}}>
         <p className="stit">This Week</p>
-        <div className="card">
+        {isDemo?<div className="card">
           <div style={{display:"flex",justifyContent:"space-between",marginBottom:12}}>
             <div><p style={{fontSize:11,color:C.muted}}>Weekly Revenue</p><p className="pf" style={{fontSize:26,fontWeight:700,color:C.gold}}>$605</p></div>
             <span className="badge bgrn">↑ 22%</span>
@@ -4762,7 +4766,11 @@ function Dashboard({onAdd,onAdmin,onBookingPage,onWaitlist,onNoShow,shopName="Fr
               </div>
             ))}
           </div>
-        </div>
+        </div>:<div className="card" style={{textAlign:"center",padding:"30px 20px"}}>
+          <p style={{fontSize:32,marginBottom:8}}>📊</p>
+          <p style={{fontSize:14,fontWeight:600,color:C.text,marginBottom:4}}>No revenue data yet</p>
+          <p style={{fontSize:12,color:C.muted}}>Your weekly chart will appear after your first appointment</p>
+        </div>}
       </div>
     </div>
   );
@@ -5761,7 +5769,7 @@ function ReviewsScreen({onClose}){
             <p style={{fontSize:13,color:C.muted,marginBottom:16}}>Send a text to a recent client asking for a review.</p>
             <label className="lbl">Select client</label>
             <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
-              {CLIENTS.filter(c=>c.lastVisit).slice(0,4).map(c=>(
+              {[].slice(0,4).map(c=>(
                 <div key={c.id} onClick={()=>setReqClient(c)} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 14px",background:reqClient?.id===c.id?`${C.gold}10`:C.card,border:`1px solid ${reqClient?.id===c.id?C.gold:C.border}`,borderRadius:12,cursor:"pointer",transition:"all .18s"}}>
                   <div className="pav" style={{width:36,height:36,fontSize:14,background:`linear-gradient(135deg,${c.gradient[0]},${c.gradient[1]})`}}>{c.avatar}</div>
                   <div style={{flex:1}}>
@@ -6037,7 +6045,7 @@ function StripePaymentsScreen({onClose}){
 // ══════════════════════════════════════════
 function BookingFlowPolished({onClose}){
   const [tab,setTab]=useState("confirmations"); // confirmations | sms | reminders | settings
-  const [selClient,setSelClient]=useState(CLIENTS[0]);
+  const [selClient,setSelClient]=useState(null);
   const [reminderSettings,setReminderSettings]=useState({h24:true,h1:true,followUp:true,custom:false,customHrs:3});
   const [autoConfirm,setAutoConfirm]=useState(true);
   const [showSmsCompose,setShowSmsCompose]=useState(false);
@@ -6127,7 +6135,7 @@ function BookingFlowPolished({onClose}){
           {/* Client selector */}
           <p className="stit">Client</p>
           <div style={{display:"flex",gap:8,overflowX:"auto",marginBottom:16,paddingBottom:4,scrollbarWidth:"none"}}>
-            {CLIENTS.slice(0,5).map(c=>(
+            {[].slice(0,5).map(c=>(
               <div key={c.id} onClick={()=>setSelClient(c)} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6,cursor:"pointer",flexShrink:0}}>
                 <div className="pav" style={{width:44,height:44,fontSize:16,background:`linear-gradient(135deg,${c.gradient[0]},${c.gradient[1]})`,border:`2px solid ${selClient.id===c.id?C.gold:"transparent"}`,transition:"border .18s"}}>{c.avatar}</div>
                 <span style={{fontSize:10,color:selClient.id===c.id?C.gold:C.muted,fontWeight:600}}>{c.name.split(" ")[0]}</span>
@@ -8532,7 +8540,7 @@ function TimeClockScreen({onClose}){
 function InAppChatScreen({onClose}){
   const [view,setView]=useState("list"); // list | thread
   const [selClient,setSelClient]=useState(null);
-  const [clients,setClients]=useState(CHAT_CLIENTS);
+  const [clients,setClients]=useState([]);
   const [threads,setThreads]=useState(CHAT_THREADS);
   const [draft,setDraft]=useState("");
   const [searchQ,setSearchQ]=useState("");
@@ -10927,7 +10935,7 @@ function ConsultationFormsScreen({onClose}){
 // V13: CLIENT BIRTHDAY & ANNIVERSARY AUTOMATION
 // ══════════════════════════════════════════
 function BirthdayAutomationScreen({onClose}){
-  const [clients]=useState(BDAY_CLIENTS);
+  const [clients]=useState([]);
   const [automation,setAutomation]=useState({enabled:true,timing:"dayOf",template:"deal",anniversaryEnabled:true,annivTiming:"weekBefore"});
   const [selTemplate,setSelTemplate]=useState("deal");
   const [customMsg,setCustomMsg]=useState("");
@@ -14190,7 +14198,7 @@ export default function App(){
             <div className="hdr"><h2 className="pf" style={{fontSize:24,fontWeight:700,marginBottom:4}}>More</h2><p style={{fontSize:13,color:C.muted}}>Tools & features</p></div>
             <div className="sec" style={{marginBottom:20}}>
               {[
-                {icon:"📋",label:"Waitlist",sub:"Queue management & auto-notify",color:C.blue,t:"waitlist",badge:WAITLIST_INIT.length},
+                {icon:"📋",label:"Waitlist",sub:"Queue management & auto-notify",color:C.blue,t:"waitlist",badge:0},
                 {icon:"🚫",label:"No-Show Management",sub:"Fees, blocking, at-risk clients",color:C.red,t:"noshow",dot:true},
                 {icon:"🔔",label:"Notifications",sub:"Alerts, push settings, digest",color:C.purple,t:"notifs",badge:3},
                 {icon:"👤",label:"Client App View",sub:"Preview the client experience",color:C.gold,t:"clientapp",new:true},
@@ -14352,7 +14360,7 @@ export default function App(){
         {addOpen&&<AddAppt onClose={()=>setAddOpen(false)}/>}
         {adminOpen&&<AdminDashboard onClose={()=>setAdminOpen(false)}/>}
         {bookingOpen&&<ClientBookingPage onClose={()=>setBookingOpen(false)}/>}
-        {waitlistOpen&&<WaitlistScreen onClose={()=>setWaitlistOpen(false)}/>}
+        {waitlistOpen&&<WaitlistScreen onClose={()=>setWaitlistOpen(false)} isDemo={isDemo}/>}
         {noShowOpen&&<NoShowScreen onClose={()=>setNoShowOpen(false)}/>}
         {notifsOpen&&<NotificationsCenter onClose={()=>setNotifsOpen(false)}/>}
         {clientAppOpen&&<ClientAppView onClose={()=>setClientAppOpen(false)}/>}
