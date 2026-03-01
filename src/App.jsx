@@ -2051,7 +2051,7 @@ function AuthScreen({onAuth}){
         {tab==="signup"&&(
           <div style={{marginBottom:12}}>
             <label className="lbl">Full Name</label>
-            <input className="inp" placeholder="Marcus Johnson" value={name} onChange={e=>setName(e.target.value)}/>
+            <input className="inp" placeholder="Name on card" value={name} onChange={e=>setName(e.target.value)}/>
           </div>
         )}
         <div style={{marginBottom:12}}>
@@ -2303,7 +2303,7 @@ function ClientBookingPage({onClose}){
     if(promoCode.toUpperCase()==="LOVE5"||promoCode.toUpperCase()==="NEW5") setPromoApplied(true);
   };
 
-  const BARBER={name:"Marcus Johnson",rating:4.9,reviews:124,location:"New Orleans, LA",avatar:"M",bio:"10 years cutting in NOLA. Clean fades, sharp shapes, and expert braids. Book and I'll see you in the chair ✂️"};
+  const BARBER={name:"Your Barber",rating:0,reviews:0,location:", LA",avatar:"M",bio:"10 years cutting in NOLA. Clean fades, sharp shapes, and expert braids. Book and I'll see you in the chair ✂️"};
 
   const stepTitles=["Choose a Service","Pick a Date & Time","Your Info","Confirm Booking"];
 
@@ -2465,7 +2465,7 @@ function ClientBookingPage({onClose}){
             <p className="pf" style={{fontSize:18,fontWeight:700,marginBottom:16,color:C.gold}}>Booking Summary</p>
             {[
               {icon:"✂️",label:"Service",val:selSvc?.name},
-              {icon:"👤",label:"Barber",val:"Marcus Johnson"},
+              {icon:"👤",label:"Barber",val:"Your Barber"},
               {icon:"📅",label:"Date",val:dates[selDate]?.full},
               {icon:"🕐",label:"Time",val:selTime},
               {icon:"⏱",label:"Duration",val:selSvc?.dur},
@@ -2577,7 +2577,7 @@ function WaitlistScreen({onClose,isDemo=false}){
 
   // Cancel log (simulated)
   const CANCEL_LOG=[
-    {time:"9:15 AM",client:"DeShawn W.",service:"Shape-Up",slot:"9:30 AM",notified:"Khalil R.",outcome:"Booked"},
+    {time:"9:15 AM",client:"_DeShawn W.",service:"Shape-Up",slot:"9:30 AM",notified:"Khalil R.",outcome:"Booked"},
     {time:"Yesterday",client:"No-show",service:"Fade",slot:"11:00 AM",notified:"Leon T.",outcome:"Declined"},
     {time:"Feb 17",client:"Joey T.",service:"Haircut",slot:"2:30 PM",notified:"Samira B.",outcome:"Booked"},
   ];
@@ -2808,8 +2808,8 @@ function WaitlistScreen({onClose,isDemo=false}){
 // ══════════════════════════════════════════
 function NoShowScreen({onClose}){
   const [tab,setTab]=useState("at-risk");
-  const [noShows,setNoShows]=useState(NOSHOWS_INIT);
-  const [atRisk]=useState(AT_RISK_INIT);
+  const [noShows,setNoShows]=useState([]);
+  const [atRisk]=useState([]);
   const [feeModal,setFeeModal]=useState(null);   // no-show record
   const [blockModal,setBlockModal]=useState(null);
   const [reminderSent,setReminderSent]=useState({});
@@ -3075,7 +3075,7 @@ function NoShowScreen({onClose}){
 // NOTIFICATIONS CENTER
 // ══════════════════════════════════════════
 function NotificationsCenter({onClose}){
-  const [notifs,setNotifs]=useState(NOTIFS_INIT);
+  const [notifs,setNotifs]=useState([]);
   const [filter,setFilter]=useState("all");
   const [tab,setTab]=useState("inbox");
 
@@ -3293,7 +3293,7 @@ function ClientAppView({onClose}){
 
         {tab==="book"&&<div style={{padding:"20px"}}>
           <h2 className="pf" style={{fontSize:22,fontWeight:700,marginBottom:4}}>Book a Service</h2>
-          <p style={{fontSize:13,color:C.muted,marginBottom:20}}>Chop-It-Up · Marcus Johnson</p>
+          <p style={{fontSize:13,color:C.muted,marginBottom:20}}>Chop-It-Up</p>
           <p className="stit">Select Service</p>
           {SVCS.map(s=>(
             <div key={s.name} className="svc-card" style={{marginBottom:10,cursor:"pointer"}}>
@@ -3366,7 +3366,7 @@ function ClientAppView({onClose}){
 // INVENTORY MANAGEMENT
 // ══════════════════════════════════════════
 function InventoryScreen({onClose}){
-  const [inventory,setInventory]=useState(INVENTORY_INIT);
+  const [inventory,setInventory]=useState([]);
   const [tab,setTab]=useState("stock");
   const [selItem,setSelItem]=useState(null);
   const [addOpen,setAddOpen]=useState(false);
@@ -4260,7 +4260,7 @@ function LoyaltyScreen(){
         {[
           {name:"Marcus J.",action:"Earned 450 pts",sub:"Fade + Beard · Feb 15",icon:"➕",color:C.green},
           {name:"Tre L.",action:"Redeemed reward",sub:"Free Beard Trim · Feb 14",icon:"🎁",color:C.gold},
-          {name:"DeShawn W.",action:"Reached Silver",sub:"200 pts milestone · Feb 12",icon:"🏆",color:"#9E9E9E"},
+          {name:"_DeShawn W.",action:"Reached Silver",sub:"200 pts milestone · Feb 12",icon:"🏆",color:"#9E9E9E"},
           {name:"Carlos M.",action:"Earned 250 pts",sub:"Color · Feb 10",icon:"➕",color:C.green},
           {name:"Joey T.",action:"Joined program",sub:"Bronze tier · Feb 5",icon:"✂️",color:C.orange},
         ].map((a,i)=>(
@@ -4437,7 +4437,7 @@ function AnalyticsScreen(){
           </div>
         </div>
         <div className="sgrid" style={{marginBottom:16}}>
-          {[["Avg Monthly","$1,545","revenue"],["Avg per Client","$45","ticket"],["Tip Rate","22%","of total"],["Processing Fees","2.7%","Stripe avg"]].map(([l,v,s])=>(
+          {[["Avg Monthly","$0","revenue"],["Avg per Client","$0","ticket"],["Tip Rate","22%","of total"],["Processing Fees","2.7%","Stripe avg"]].map(([l,v,s])=>(
             <div key={l} className="sc"><p style={{fontSize:11,color:C.muted}}>{l}</p><p className="pf" style={{fontSize:20,fontWeight:700,color:C.gold,marginTop:4}}>{v}</p><p style={{fontSize:11,color:C.muted,marginTop:4}}>{s}</p></div>
           ))}
         </div>
@@ -4461,7 +4461,7 @@ function AnalyticsScreen(){
       {tab==="services"&&<div className="sec">
         <div className="card" style={{marginBottom:16}}>
           <p style={{fontSize:14,fontWeight:700,marginBottom:14}}>Revenue by Service</p>
-          {[["Fade","$5,820","38%",C.gold],["Haircut","$3,240","21%",C.blue],["Braids","$2,850","19%",C.purple],["Color","$2,310","15%",C.pink],["Beard Trim","$1,020","7%",C.green]].map(([s,rev,pct,col])=>(
+          {[["Fade","$0","0%",C.gold],["Haircut","$0","0%",C.blue],["Braids","$0,850","19%",C.purple],["Color","$2,310","15%",C.pink],["Beard Trim","$1,020","7%",C.green]].map(([s,rev,pct,col])=>(
             <div key={s} style={{marginBottom:12}}>
               <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
                 <span style={{fontSize:13,fontWeight:600}}>{s}</span>
@@ -4566,7 +4566,7 @@ function AdminDashboard({onClose}){
           <div className="card">
             <p style={{fontSize:13,fontWeight:600,marginBottom:12}}>Platform Bookings — This Week</p>
             <div style={{display:"flex",alignItems:"flex-end",gap:6,height:80}}>
-              {WEEKLY.map((h,i)=>(
+              {[50,80,60,90,75,110,95].map((h,i)=>(
                 <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
                   <div className={`bar${i===6?"":" dim"}`} style={{height:`${(h/145)*70}px`,width:"100%"}}/>
                   <span style={{fontSize:10,color:C.muted}}>{DAYS[i]}</span>
@@ -4690,7 +4690,7 @@ function Dashboard({onAdd,onAdmin,onBookingPage,onWaitlist,onNoShow,shopName="Fr
         <div onClick={onNoShow} style={{background:"rgba(224,82,82,.06)",border:"1px solid rgba(224,82,82,.2)",borderRadius:12,padding:"10px 14px",marginTop:10,display:"flex",alignItems:"center",gap:10,cursor:"pointer"}}>
           <div className="alert-pulse" style={{width:8,height:8,borderRadius:"50%",background:C.red,flexShrink:0}}/>
           <div style={{flex:1}}>
-            <p style={{fontSize:12,fontWeight:600,color:C.red}}>1 pending no-show fee · Carlos M. at 2:00 PM</p>
+            <p style={{fontSize:12,fontWeight:600,color:C.red}}>{isDemo?"1 pending no-show fee · Carlos M. at 2:00 PM":"No pending no-show fees"}</p>
             <p style={{fontSize:11,color:C.dim}}>Tap to manage no-shows & fees</p>
           </div>
           <span style={{color:C.red,fontSize:14}}>›</span>
@@ -5258,7 +5258,7 @@ function Profile({onAdmin,onBack,onSignOut,userData={shopName:"Fresh Cutz",barbe
 
                 <p className="stit">Billing Address</p>
                 <div className="card" style={{marginBottom:16}}>
-                  {[["Name","Marcus Johnson"],["Address","1420 Magazine St"],["City / State","New Orleans, LA 70130"],["Country","United States"]].map(([l,v])=>(
+                  {[["Name","—"],["Address","—"],["City / State","—"],["Country","—"]].map(([l,v])=>(
                     <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"9px 0",borderBottom:`1px solid ${C.border}`}}>
                       <span style={{fontSize:12,color:C.muted}}>{l}</span>
                       <span style={{fontSize:13,fontWeight:600}}>{v}</span>
@@ -5465,8 +5465,8 @@ function CalendarScreen({onClose}){
   const [selBarber,setSelBarber]=useState("All");
   const [selEvent,setSelEvent]=useState(null);
   const [dragHint,setDragHint]=useState(true);
-  const BARBERS=["All","Marcus","Darius","Jerome"];
-  const BARBER_COLORS={Marcus:C.gold,Darius:C.blue,Jerome:C.green};
+  const BARBERS=["All"];
+  const BARBER_COLORS={};
   const CELL_H=48; // px per hour
 
   // Build week dates
@@ -5478,7 +5478,8 @@ function CalendarScreen({onClose}){
     return {label:["Mon","Tue","Wed","Thu","Fri","Sat","Sun"][i],date:d.getDate(),isToday:i===3&&weekOffset===0};
   });
 
-  const filtered=selBarber==="All"?CAL_APPTS:CAL_APPTS.filter(a=>a.barber===selBarber);
+  const CAL_DATA=[];
+  const filtered=selBarber==="All"?CAL_DATA:CAL_DATA.filter(a=>a.barber===selBarber);
   const dayAppts=day=>filtered.filter(a=>a.day===day);
 
   function EventBlock({appt}){
@@ -5601,7 +5602,7 @@ function CalendarScreen({onClose}){
 // REVIEW & RATING SYSTEM
 // ══════════════════════════════════════════
 function ReviewsScreen({onClose}){
-  const [reviews,setReviews]=useState(REVIEWS_INIT);
+  const [reviews,setReviews]=useState([]);
   const [activeTab,setActiveTab]=useState("all"); // all | pending | responded
   const [replyTarget,setReplyTarget]=useState(null);
   const [replyText,setReplyText]=useState("");
@@ -5611,7 +5612,7 @@ function ReviewsScreen({onClose}){
 
   const showToast=msg=>{setToast(msg);setTimeout(()=>setToast(""),2500)};
 
-  const avg=reviews.reduce((a,r)=>a+r.rating,0)/reviews.length;
+  const avg=reviews.length?reviews.reduce((a,r)=>a+r.rating,0)/reviews.length:0;
   const dist=[5,4,3,2,1].map(s=>({s,count:reviews.filter(r=>r.rating===s).length}));
   const tabs=[
     {id:"all",label:"All",count:reviews.length},
@@ -5797,7 +5798,7 @@ function ReviewsScreen({onClose}){
 // ══════════════════════════════════════════
 function StripePaymentsScreen({onClose}){
   const [tab,setTab]=useState("overview"); // overview | readers | payouts | bank
-  const [readers,setReaders]=useState(STRIPE_READERS);
+  const [readers,setReaders]=useState([]);
   const [pairingMode,setPairingMode]=useState(false);
   const [bankLinked,setBankLinked]=useState(true);
   const [toast,setToast]=useState("");
@@ -5814,7 +5815,7 @@ function StripePaymentsScreen({onClose}){
     },2500);
   };
 
-  const totalVolume=STRIPE_PAYOUTS.reduce((a,p)=>a+p.amount,0);
+  const totalVolume=0;
   const stripeRate=0.027;
   const stripeFees=totalVolume*stripeRate;
 
@@ -5954,7 +5955,7 @@ function StripePaymentsScreen({onClose}){
             <div className="stripe-stat"><div style={{fontSize:15,fontWeight:800,color:C.gold}}>Instant ↗</div><div style={{fontSize:10,color:C.muted}}>+ $3.14 fee</div></div>
           </div>
           <p className="stit">Payout History</p>
-          {STRIPE_PAYOUTS.map(p=>(
+          {[].map(p=>(
             <div key={p.id} className="payout-row">
               <div>
                 <div style={{fontSize:14,fontWeight:600}}>{p.date}</div>
@@ -6796,11 +6797,12 @@ function CashOutScreen({onClose}){
     setDenoms(ds=>ds.map((d,i)=>i===idx?{...d,qty:Math.max(0,d.qty+delta)}:d));
   };
 
-  const APPTS_TODAY=[
+  const APPTS_TODAY=[];
+  const _APPTS_TODAY_DEMO=[
     {name:"Marcus J.",service:"Fade + Beard",amount:54,time:"10:00 AM",paid:"card"},
     {name:"DeShawn W.",service:"Shape-Up",amount:30,time:"11:30 AM",paid:"applepay"},
     {name:"Tre L.",service:"Braids",amount:115,time:"2:00 PM",paid:"cash"},
-    {name:"Carlos M.",service:"Color",amount:85,time:"3:30 PM",paid:"card"},
+    {name:"_Carlos M.",service:"Color",amount:85,time:"3:30 PM",paid:"card"},
     {name:"Brandon K.",service:"Haircut",amount:37,time:"5:00 PM",paid:"card"},
   ];
 
@@ -6979,9 +6981,9 @@ function WalkInKioskScreen({onClose}){
   const [mode,setMode]=useState("manager"); // manager | kiosk | ticket
   const [queue,setQueue]=useState([
     {ticket:1,name:"Walk-In #1",service:"Fade",barber:"Marcus",addedAt:"9:15 AM",status:"current",eta:"Now",avatar:"W"},
-    {ticket:2,name:"DeShawn W.",service:"Shape-Up",barber:"Marcus",addedAt:"9:30 AM",status:"next",eta:"~25 min",avatar:"D"},
-    {ticket:3,name:"Walk-In #3",service:"Haircut",barber:"Darius",addedAt:"10:00 AM",status:"waiting",eta:"~50 min",avatar:"W"},
-    {ticket:4,name:"Walk-In #4",service:"Beard Trim",barber:"Jerome",addedAt:"10:20 AM",status:"waiting",eta:"~1 hr",avatar:"W"},
+    {ticket:2,name:"_DeShawn W.",service:"Shape-Up",barber:"Marcus",addedAt:"9:30 AM",status:"next",eta:"~25 min",avatar:"D"},
+    {ticket:3,name:"Walk-In #3",service:"Haircut",barber:"",addedAt:"10:00 AM",status:"waiting",eta:"~50 min",avatar:"W"},
+    {ticket:4,name:"Walk-In #4",service:"Beard Trim",barber:"",addedAt:"10:20 AM",status:"waiting",eta:"~1 hr",avatar:"W"},
   ]);
   const [nextTicket,setNextTicket]=useState(5);
   const [kioskStep,setKioskStep]=useState("services"); // services | barber | confirm | ticket
@@ -7326,7 +7328,7 @@ function PortfolioScreen({onClose}){
             <div style={{marginBottom:12}}>
               <label className="lbl">Assign to barber</label>
               <select className="sel">
-                {["Marcus J.","Darius B.","Jerome W."].map(b=><option key={b}>{b}</option>)}
+                {["All"].map(b=><option key={b}>{b}</option>)}
               </select>
             </div>
             <div style={{marginBottom:14}}>
@@ -8823,20 +8825,9 @@ function DailyBriefingScreen({onClose}){
   const [toast,setToast]=useState("");
   const showToast=m=>{setToast(m);setTimeout(()=>setToast(""),2400)};
 
-  const TODAY_APPTS=[
-    {time:"10:00 AM",client:"Marcus J.",service:"Fade + Beard",barber:"Marcus",value:54,deposit:"✓",status:"checked-in"},
-    {time:"11:30 AM",client:"DeShawn W.",service:"Shape-Up",barber:"Marcus",value:30,deposit:"✓",status:"upcoming"},
-    {time:"1:00 PM",client:"Tre L.",service:"Braids",barber:"Darius",value:95,deposit:"–",status:"upcoming"},
-    {time:"3:30 PM",client:"Carlos M.",service:"Color + Fade",barber:"Darius",value:80,deposit:"✓",status:"upcoming"},
-    {time:"5:00 PM",client:"Brandon K.",service:"Haircut",barber:"Jerome",value:37,deposit:"–",status:"upcoming"},
-  ];
+  const TODAY_APPTS=[];
   const projectedRevenue=TODAY_APPTS.reduce((a,ap)=>a+ap.value,0);
-  const ACTION_ITEMS=[
-    {icon:"📦",label:"Clipper oil is critically low",action:"Order Now",color:C.red},
-    {icon:"⭐",label:"2 review requests unsent from yesterday",action:"Send Now",color:C.gold},
-    {icon:"💬",label:"DeShawn is asking to reschedule",action:"Reply",color:C.blue},
-    {icon:"🔔",label:"Darius hasn't clocked in yet",action:"Check",color:C.orange},
-  ];
+  const ACTION_ITEMS=[];
 
   return(
     <div className="briefing-wrap">
@@ -11382,7 +11373,7 @@ function BeforeAfterRequestScreen({onClose}){
           <>
             <p className="stit" style={{marginBottom:10}}>Before & After Gallery</p>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-              {[{name:"Marcus J.",style:"Skin Fade",date:"Feb 22"},{name:"Tyrese B.",style:"Texture Top",date:"Feb 20"},{name:"Aisha W.",style:"Silk Press",date:"Feb 18"},{name:"Devon K.",style:"Mid Fade",date:"Feb 15"},{name:"Kendra D.",style:"Box Braids",date:"Feb 12"},{name:"Alex C.",style:"Caesar",date:"Feb 10"}].map((item,i)=>(
+              {[].map((item,i)=>(
                 <div key={i} style={{background:C.card,borderRadius:16,overflow:"hidden",border:`1px solid ${C.border}`}}>
                   <div style={{height:80,background:`linear-gradient(135deg,${[C.gold,C.blue,C.purple,C.green,C.pink,C.orange][i%6]}20,${[C.purple,C.green,C.gold,C.blue,C.orange,C.pink][i%6]}15)`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:28}}>✂️</div>
                   <div style={{padding:"8px 10px"}}>
@@ -11671,13 +11662,7 @@ function WaitingRoomScreen({onClose}){
   const [toast,setToast]=useState("");
   const showToast=m=>{setToast(m);setTimeout(()=>setToast(""),2400)};
 
-  const queue=[
-    {num:1,name:"Marcus J.",service:"Skin Fade",barber:"DJ Kool",wait:"Now",status:"serving"},
-    {num:2,name:"Tyrese B.",service:"Haircut",barber:"Ray B.",wait:"~5 min",status:"next"},
-    {num:3,name:"Aisha W.",service:"Silk Press",barber:"Marcus",wait:"~20 min",status:"waiting"},
-    {num:4,name:"Devon K.",service:"Beard Trim",barber:"DJ Kool",wait:"~30 min",status:"waiting"},
-    {num:5,name:"Kendra D.",service:"Haircut",barber:"Ray B.",wait:"~40 min",status:"waiting"},
-  ];
+  const queue=[];
 
   const TVDisplay=()=>(
     <div className="tv-screen" style={{background:colorTheme==="dark"?"#0a0a0c":colorTheme==="gold"?"#0f0d00":"#f0f0f0"}}>
@@ -13022,12 +13007,7 @@ function GoogleBusinessScreen({onClose}){
     {label:"Clicks",val:"96",icon:"🖱",delta:"-3%",up:false},
     {label:"Calls",val:"41",icon:"📞",delta:"+22%",up:true},
   ];
-  const reviews=[
-    {name:"Marcus J.",stars:5,date:"2d ago",text:"Freshest cuts in the city. Fades are clean every time!",replied:false},
-    {name:"DeShawn W.",stars:5,date:"1w ago",text:"Best barbershop period. Been coming for 3 years.",replied:true,reply:"We appreciate you brother! See you next time ✂️"},
-    {name:"Carlos M.",stars:4,date:"2w ago",text:"Great service, just wish booking was easier.",replied:false},
-    {name:"Anon",stars:3,date:"3w ago",text:"Decent cut but waited 20 mins past appointment.",replied:false},
-  ];
+  const reviews=[];
   const hours=[
     {day:"Mon",open:"9:00 AM",close:"7:00 PM",closed:false},
     {day:"Tue",open:"9:00 AM",close:"7:00 PM",closed:false},
@@ -13710,11 +13690,7 @@ function OfflineModeScreen({onClose}){
   const showToast=m=>{setToast(m);setTimeout(()=>setToast(""),2400)};
   const [tab,setTab]=useState("status");
 
-  const pendingQueue=[
-    {id:1,type:"Appointment",action:"Add",desc:"Marcus J. — Fade, 10:00 AM Fri",time:"5m ago",size:"1.2 KB"},
-    {id:2,type:"Payment",action:"Record",desc:"$45 cash payment — DeShawn W.",time:"12m ago",size:"0.8 KB"},
-    {id:3,type:"Client",action:"Update",desc:"Phone number update — Carlos M.",time:"1h ago",size:"0.4 KB"},
-  ];
+  const pendingQueue=[];
   const syncLog=[
     {label:"Appointments",icon:"📅",items:47,lastSync:"2 min ago",status:"ok"},
     {label:"Client Profiles",icon:"👥",items:183,lastSync:"2 min ago",status:"ok"},
@@ -14006,34 +13982,34 @@ function PushDeepLinksScreen({onClose}){
 
 export default function App(){
   // App flow: splash → auth → onboarding → main
-  const [appState,setAppState]=useState("splash"); // splash | auth | onboarding | main
+  const [appState,setAppState]=useState("checking"); // checking | auth | onboarding | main
   const [userData,setUserData]=useState({shopName:"Fresh Cutz",barberName:"Marcus Johnson",role:"barber"});
   const [isDemo,setIsDemo]=useState(false); // true = show mock data; false = real Parse data
 
-  // On splash done: check if already logged in via Parse session token
-  const handleSplashDone=useCallback(async()=>{
-    const current=ParseService.currentUser();
-    if(current){
-      try{
-        await current.fetch(); // re-validate session with server
-        const profile=await ParseService.getShopProfile();
-        if(profile && (profile.shopName||profile.barberName)){
-          setUserData(profile);
-          setIsDemo(false);
-          setAppState("main");
-        } else {
-          // Logged in but never completed onboarding
-          const displayName=current.get("name")||"";
-          setUserData(u=>({...u, barberName:displayName, shopName:displayName}));
-          setAppState("onboarding");
+  // On mount: silently check session — no splash on refresh if already logged in
+  useEffect(()=>{
+    (async()=>{
+      const current=ParseService.currentUser();
+      if(current){
+        try{
+          await current.fetch();
+          const profile=await ParseService.getShopProfile();
+          if(profile && (profile.shopName||profile.barberName)){
+            setUserData(profile);
+            setIsDemo(false);
+            setAppState("main");
+          } else {
+            const displayName=current.get("name")||"";
+            setUserData(u=>({...u, barberName:displayName, shopName:displayName}));
+            setAppState("onboarding");
+          }
+        } catch(e){
+          setAppState("auth");
         }
-      } catch(e){
-        // Session expired or invalid — go to auth
+      } else {
         setAppState("auth");
       }
-    } else {
-      setAppState("auth");
-    }
+    })();
   },[]);
   const [tab,setTab]=useState("home");
   const [addOpen,setAddOpen]=useState(false);
@@ -14141,11 +14117,14 @@ export default function App(){
   };
 
   // ── SPLASH ──
-  if(appState==="splash") return(
+  if(appState==="checking") return(
     <>
       <style>{CSS}</style>
-      <div className="app">
-        <SplashScreen onDone={handleSplashDone}/>
+      <div className="app" style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100%",background:"#0D0D0D"}}>
+        <div style={{textAlign:"center"}}>
+          <div style={{fontSize:48,marginBottom:16,animation:"scissors 1s linear infinite",display:"inline-block"}}>✂️</div>
+          <p style={{fontSize:14,color:"#C9A84C",fontFamily:"'DM Sans',sans-serif",letterSpacing:1}}>Loading...</p>
+        </div>
       </div>
     </>
   );
